@@ -1,0 +1,7 @@
+black
+flake8
+isort
+mypy
+types-pytz
+sphinx
+sphinx_rtd_theme
