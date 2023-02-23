@@ -53,10 +53,12 @@ class TweepStream:
 
         for tweet in reversed(newTweets):
             tweet_json = json.loads(tweet.json())
-            try:
-                test = tweet["inReplyToUser"]
-                log_debug("[LOGGING] it is a reply. No show")
-            except:
+            test = tweet_json["inReplyToUser"]
+            if test is not None:
+                if test["username"] != tweet_json["user"]["username"]:
+                    utils.log_debug("[LOGGING]This is a reply")
+            else:
+                utils.log_debug("[LOGGING]Fresh or threaded tweet")
                 make_tweet = utils.Mastodon_Post(
                     tweet_json["user"]["username"], tweet_json
                 )
