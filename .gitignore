@@ -1,8 +1,9 @@
 *__pycache__*
-/.*login*
+/.*.json
 /.envrc
 /.direnv
 /txt
 /werkdir
 /*.txt
 /*.log
+/*.tmp
