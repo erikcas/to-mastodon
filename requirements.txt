@@ -1,2 +1,5 @@
 snscrape
 Mastodon.py
+python-magic
+youtube-dl
+wget
