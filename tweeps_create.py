@@ -1,3 +1,5 @@
+from utils import set_sns_creds
+set_sns_creds()
 import snscrape.modules.twitter
 
 
@@ -15,6 +17,7 @@ def create_tweeps():
 
     with open("tweeps.py", "w") as f:
         f.write("import utils\n")
+        f.write("utils.set_sns_creds()\n")
         f.write("import snscrape.modules.twitter\n\n\n")
         f.write("def tweeps():\n")
         f.write("\tusers = [\n")

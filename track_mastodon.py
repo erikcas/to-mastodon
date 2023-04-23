@@ -1,6 +1,8 @@
 import json
 import os
 
+from utils import set_sns_creds
+set_sns_creds()
 import snscrape.modules.twitter
 
 import utils
