@@ -5,6 +5,7 @@ import re
 import time
 
 import magic
+import snscrape.modules.twitter
 import wget
 import youtube_dl
 
@@ -24,13 +25,6 @@ os.system(f"rm -rf wortkdir")
 if not os.path.isdir(f"{workdir}"):
     os.mkdir(f"{workdir}")
 
-
-def set_sns_creds():
-    with open('.sns.json') as f:
-        creds = json.load(f)
-    os.environ["API_AUTHORIZATION_HEADER"] = creds["sns_bearer"]
-    os.environ["API_COOKIE"] = creds["sns_cookie"]
-    os.environ["API_CSRF"] = creds["sns_csrf"]
 
 def log_debug(debug):
     """Simple logging functionality.
