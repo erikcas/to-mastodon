@@ -1,11 +1,9 @@
 import json
 import os
 
-import snscrape.modules.twitter
-
 import utils
-
-
+import twit_api
+import tweetdata
 class TweepStream:
     def __init__(self, user):
         self.user = user
@@ -21,10 +19,6 @@ class TweepStream:
         """
         utils.log_debug(f"[LOGGING]Check fresh tweets for {self.user}")
 
-        s = snscrape.modules.twitter.TwitterSearchScraper(
-            f"from:{self.user} include:nativeretweets"
-        )
-
         workdir = os.getcwd()
         maxseendir = f"{workdir}/txt"
         if not os.path.isdir(maxseendir):
@@ -38,28 +32,32 @@ class TweepStream:
             maxSeen = None
 
         newTweets = []
-        for i, t in enumerate(s.get_items()):
+        temp = twit_api.UserTimeline(self.user)
+        s = temp.list_user_tweets()
+        for t in s:
+            t = int(t)
             if maxSeen is None:
-                maxSeen = t.id
+                maxSeen = t
                 break
-            if t.id <= maxSeen:
+            if t <= maxSeen:
                 break
             newTweets.append(t)
         if newTweets:
-            maxSeen = max(maxSeen, newTweets[0].id)
-        with open(f"{maxseendir}/{self.user}.txt", "w") as f:
-            f.write(str(maxSeen))
-        utils.log_debug("[LOGGING] tweet id written.")
+            maxSeen = max(maxSeen, newTweets[0])
 
         for tweet in reversed(newTweets):
-            tweet_json = json.loads(tweet.json())
-            test = tweet_json["inReplyToUser"]
+            tweets = tweetdata.TweetData(tweet)
+            try:
+                test = tweets.reply_to_user()
+            except:
+                test = None
             if test is not None:
-                if test["username"] != tweet_json["user"]["username"]:
+                if test != self.user:
                     utils.log_debug("[LOGGING]This is a reply")
             else:
                 utils.log_debug("[LOGGING]Fresh or threaded tweet")
-                make_tweet = utils.Mastodon_Post(
-                    tweet_json["user"]["username"], tweet_json
-                )
+                make_tweet = utils.Mastodon_Post(self.user, tweet)
                 make_tweet.post_mastodon()
+        with open(f"{maxseendir}/{self.user}.txt", "w") as f:
+            f.write(str(maxSeen))
+        utils.log_debug("[LOGGING] tweet id written.")

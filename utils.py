@@ -5,11 +5,11 @@ import re
 import time
 
 import magic
-import snscrape.modules.twitter
 import wget
 import youtube_dl
 
 from mastodon import Mastodon
+import tweetdata
 
 logging.basicConfig(
     filename="mastodon_log.log",
@@ -76,32 +76,33 @@ class Mastodon_Post:
         media_id = []
         empty_workdir()
         api = get_api(self.user)
+        data = tweetdata.TweetData(self.tweet)
+        screen_name = data.screen_name()
+        full_text = data.full_text()
+        expanded_urls = data.expanded_urls()
+        for i in expanded_urls:
+            expanded_url = i
+        retweet_url = f"https://twitter.com/{screen_name}/status/{self.tweet}"
         # Check if this is a tweet or a retweet
-        if self.tweet["user"]["username"] != self.user:
+        if screen_name != self.user:
             # If this is a retweet, post a link to the twitterpost
-            text = f"{user} retweeted on twitter:\n\n{self.tweet['url']}"
+            text = f"{self.user} retweeted on twitter:\n\n{retweet_url}"
         else:
-            text = self.tweet["rawContent"]
+            text = full_text
             # Remove short urls
             try:
                 text = re.sub(
                     r"https:(\/\/t\.co\/([A-Za-z0-9]|[A-Za-z]){10})",
-                    "",
+                    f"{expanded_url}",
                     text,
                     flags=re.MULTILINE,
                 )
                 log_debug("[LOGGING]Short url removed")
             except:
                 pass
-            # Add expanded urls
-            try:
-                expanded_url = self.tweet["links"][0]["url"]
-                text += f"\n\n{expanded_url}"
-            except:
-                pass
             # Test if this is a quoted tweet. If yes, add the link to the quouted tweet
             try:
-                quoted = self.tweet["quotedTweet"]["url"]
+                quoted = data.quoted_tweet_link()
                 text += f"\n\n{quoted}"
                 log_debug("[LOGGING]Quoted tweet, link added")
             except:
@@ -109,37 +110,45 @@ class Mastodon_Post:
         # Get mediafiles
         try:
             mime = magic.Magic(mime=True)
-            for n in self.tweet["media"]:
+            videos = data.video_urls()
+            if videos != []:
                 try:
-                    if n["_type"] == "snscrape.modules.twitter.Video":
+                    for item in videos:
                         empty_workdir()
-                        video_download(self.tweet["url"])
+                        video_download(item)
                         for video in os.listdir(workdir):
-                            media = api.media_post(f"{workdir}/{video}")
-                            media_id.append(media)
-                            time.sleep(20)
-                            empty_workdir()
-                    log_debug("[LOGGING]Video detected and uploaded")
-                except Exception as e:
-                    log_debug(f"[LOGGING]No video detected {e}")
+                                media = api.media_post(f"{workdir}/{video}")
+                                media_id.append(media)
+                                time.sleep(20)
+                                empty_workdir()
+                        log_debug("[LOGGING]Video detected and uploaded")
+                except:
+                    log_degug("No videos detected")
+            photos = data.photo_urls()
+            if photos != []:
                 try:
-                    if n["_type"] == "snscrape.modules.twitter.Photo":
+                    for item in photos:
                         empty_workdir()
-                        photo_download(n["fullUrl"])
+                        photo_download(item)
                         for photo in os.listdir(workdir):
-                            plaatje = mime.from_file(f"{workdir}/{photo}")
-                            media = api.media_post(
-                                f"{workdir}/{photo}", mime_type=plaatje
-                            )
-                            media_id.append(media)
-                            empty_workdir()
-                    log_debug("[LOGGING]Image(s) detected and uploaded")
+                                plaatje = mime.from_file(f"{workdir}/{photo}")
+                                media = api.media_post(
+                                    f"{workdir}/{photo}", mime_type=plaatje
+                                )
+                                media_id.append(media)
+                                empty_workdir()
+                        log_debug("[LOGGING]Image(s) detected and uploaded")
                 except Exception as e:
                     log_debug(f"[LOGGING]No images detected {e}")
         except:
             log_debug("[LOGGING]No media detected")
 
-        # Let's post
+        # Let's post, but do a final check on removable short urls
+        text = re.sub(
+                r"https:(\/\/t\.co\/([A-Za-z0-9]|[A-Za-z]){10})",
+                "",text,
+                flags=re.MULTILINE,
+                )
         try:
             api.status_post(text, media_ids=media_id)
             log_debug("[LOGGING]Text + media posted")
