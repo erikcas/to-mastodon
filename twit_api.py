@@ -149,7 +149,7 @@ class UserTimeline:
         tweep = tweep['data']['user']['result']['rest_id']
 
         tweets = Tweets(tweep)
-        json_response = tweets.get_timeline()
+        json_response = tweets.get_timeline_with_replies()
 
         result = json_response["data"]["user"]["result"]
         timeline = result["timeline_v2"]["timeline"]["instructions"]
@@ -160,11 +160,6 @@ class UserTimeline:
             entry_type = content["entryType"]
             if entry_type == "TimelineTimelineItem":
                 item_result = content["itemContent"]["tweet_results"]["result"]
-                tweet_id = item_result["rest_id"]
-                legacy = item_result["legacy"]
-                list_tweets.append(tweet_id)
-            elif entry_type == "TimelineTimelineModule":
-                item_result = content["items"][0]["item"]["itemContent"]["tweet_results"]["result"]
                 tweet_id = item_result["rest_id"]
                 legacy = item_result["legacy"]
                 list_tweets.append(tweet_id)
